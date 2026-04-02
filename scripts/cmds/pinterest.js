@@ -3,6 +3,7 @@ const axios = require("axios");
 module.exports = {
   config: {
     name: "pinterest",
+    aliases: ["pin"],
     version: "1.0",
     author: "xalman",
     countDown: 5,
