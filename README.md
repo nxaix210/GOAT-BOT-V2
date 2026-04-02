@@ -72,7 +72,7 @@ Deploy your bot automatically. Create .github/workflows/main.yml:
 
 
 
-name: GOAT-BOT Deployment
+name: Build (20.x)
 
 on:
   push:
