@@ -2,28 +2,24 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 
-const apiJsonUrl = "https://raw.githubusercontent.com/goatbotnx/Sexy-nx2.0Updated/refs/heads/main/nx-apis.json"; 
-const ADMIN_UID = "61583129938292";
+const API_BASE = "https://xalman-apis.vercel.app/api/category";
 
 module.exports = {
   config: {
     name: "album",
     aliases: ["gallery", "alb"],
-    version: "7.0",
-    author: "xalman", 
+    version: "9.0",
+    author: "xalman",
     role: 0,
     category: "media",
-    shortDescription: "🌸 Dynamic Album with Auto-Unsend",
+    shortDescription: "get category based video from API",
     guide: "{p}album [page]"
   },
 
   onStart: async function ({ message, event, args }) {
     try {
-      const apiListResponse = await axios.get(apiJsonUrl);
-      const BASE_API = apiListResponse.data.album;
-
-      const catRes = await axios.get(`${BASE_API}/categories`);
-      const allCategories = catRes.data.categories;
+      const catRes = await axios.get(API_BASE);
+      const allCategories = catRes.data.categories || catRes.data.available_categories;
 
       if (!allCategories || allCategories.length === 0) {
         return message.reply("⚠️ No categories found in API.");
@@ -42,83 +38,75 @@ module.exports = {
       const fancy = (t) => t.replace(/[a-z]/g, c => String.fromCodePoint(0x1d400 + c.charCodeAt(0) - 97));
       const numStyle = (n) => String(n).replace(/[0-9]/g, d => String.fromCodePoint(0x1d7ec + Number(d)));
 
-      let menuText = `╔═══════ ✦ 𝐀𝐋𝐁𝐔𝐌 ✦ ═══════╗\n`;
+      let menuText = `✨ ─── ✦ 𝐀𝐋𝐁𝐔𝐌  ✦ ─── ✨\n\n`;
       currentPageCategories.forEach((cat, index) => {
-        menuText += `✦✨ ${numStyle(index + 1)} ┊ ${fancy(cat)}\n`;
+        menuText += ` ⚡ ${numStyle(index + 1)} ❯ ${fancy(cat)}\n`;
       });
-      menuText += `╚══════════════════════════╝\n`;
-      menuText += `📖 𝐏𝐚𝐠𝐞 ${numStyle(page)} / ${numStyle(totalPages)}\n`;
+      menuText += `\n📊 𝐏𝐚𝐠𝐞 [ ${numStyle(page)} / ${numStyle(totalPages)} ]\n`;
+      menuText += `─────────────────────\n`;
+      menuText += `💬 Reply with a number to view\n`;
       
       if (page < totalPages) {
-        menuText += `➕ Type: album ${page + 1} for next page`;
-      } else if (totalPages > 1) {
-        menuText += `↩️ Type: album 1 to return to start`;
+        menuText += `⏭️ Type: album ${page + 1} for next`;
       }
 
       return message.reply(menuText, (err, info) => {
-        // ৬০ সেকেন্ড পর অটো আনসেন্ড করার টাইমার
         setTimeout(() => {
-            message.unsend(info.messageID);
+          message.unsend(info.messageID);
         }, 60000);
 
         global.GoatBot.onReply.set(info.messageID, {
           commandName: "album",
           author: event.senderID,
           categories: currentPageCategories,
-          BASE_API: BASE_API,
           messageID: info.messageID
         });
       });
 
     } catch (err) {
-      console.error(err);
-      return message.reply("⚠️ Connection error! Please check if your API is online.");
+      return message.reply("⚠️ API Connection Error!");
     }
   },
 
   onReply: async function ({ message, event, Reply }) {
-    const { author, categories, BASE_API, messageID } = Reply;
-    if (event.senderID !== author) return message.reply("⛔ This menu is not for you.");
+    const { author, categories, messageID } = Reply;
+    if (event.senderID !== author) return message.reply("⛔ Permission Denied.");
 
     const pick = parseInt(event.body);
-    if (isNaN(pick)) return message.reply("🔢 Please reply with a valid number.");
-    if (pick < 1 || pick > categories.length) return message.reply("❌ Invalid selection.");
+    if (isNaN(pick) || pick < 1 || pick > categories.length) return message.reply("🔢 Invalid Selection.");
 
-    // ইউজার রিপ্লাই দেওয়ার সাথে সাথে লিস্টটি আনসেন্ড করে দেওয়া
     message.unsend(messageID);
-
     const category = categories[pick - 1];
-    const restricted = ["hot", "horny"];
-    
-    if (restricted.includes(category.toLowerCase()) && event.senderID !== ADMIN_UID) {
-        return message.reply("ছি তুমি এখনো ভালো হলে না 🫢🙏");
-    }
 
     try {
-      message.reply(`Please wait... Loading ${category} ✨`);
+      const wait = await message.reply(`🌀 Processing ${category.toUpperCase()}...`);
 
-      const res = await axios.get(`${BASE_API}/album?type=${category}`);
+      const res = await axios.get(`${API_BASE}?name=${category}`);
       const mediaUrl = res.data.data;
 
-      if (!mediaUrl) return message.reply("❌ No content found for this category.");
+      if (!mediaUrl) {
+        message.unsend(wait.messageID);
+        return message.reply("❌ Category content not found.");
+      }
 
       const ext = mediaUrl.split(".").pop().split("?")[0] || "mp4";
-      const filePath = path.join(__dirname, "cache", `album_${Date.now()}.${ext}`);
+      const filePath = path.join(__dirname, "cache", `alb26_${Date.now()}.${ext}`);
 
       const response = await axios({ url: mediaUrl, method: 'GET', responseType: 'stream' });
       const writer = fs.createWriteStream(filePath);
       response.data.pipe(writer);
 
       writer.on("finish", () => {
+        message.unsend(wait.messageID);
         message.reply({
-          body: `✦ 𝐀𝐋𝐁𝐔𝐌 𝐃𝐄𝐋𝐈𝐕𝐄𝐑𝐄𝐃 ✦\n💖 𝐂𝐚𝐭𝐞𝐠𝐨𝐫𝐲 : ${category}\n👑 𝐎𝐰𝐧𝐞𝐫 : XALMAN`,
+          body: `🎬 𝐀𝐋𝐁𝐔𝐌 𝐒𝐔𝐂𝐂𝐄𝐒𝐒\n💎 𝐂𝐚𝐭𝐞𝐠𝐨𝐫𝐲: ${category.toUpperCase()}`,
           attachment: fs.createReadStream(filePath)
         }, () => {
           if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         });
       });
     } catch (err) {
-      message.reply("⚠️ Failed to download or send media.");
+      message.reply("⚠️ Failed to load media.");
     }
   }
 };
