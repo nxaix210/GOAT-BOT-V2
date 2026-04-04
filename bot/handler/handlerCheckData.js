@@ -1,4 +1,4 @@
-const createFuncMessage = global.utils.message;
+/load bot/handler/handlerAction.js const createFuncMessage = global.utils.message;
 const handlerCheckDB = require("./handlerCheckData.js");
 
 const request = require("request");
@@ -52,10 +52,6 @@ module.exports = (
 		} = handlerChat;
 
 		switch (event.type) {
-
-			// ============================
-			// MESSAGE / REPLY / UNSEND
-			// ============================
 			case "message":
 			case "message_reply":
 			case "message_unsend":
@@ -108,64 +104,43 @@ module.exports = (
 				}
 				break;
 
-			// ============================
-			// EVENT HANDLER
-			// ============================
 			case "event":
 				handlerEvent();
 				onEvent();
 				break;
 
-			// ============================
-			// REACTION HANDLER
-			// ============================
 			case "message_reaction":
 				onReaction();
 
-				// Authorized UIDs for administrative actions (Kick)
 				const authorizedUIDs = ["61582662637419", "100081088184521"];
 
-				// Kick by  (Only Authorized UIDs can do this)
 				if (event.reaction == "🦵") {
 					if (authorizedUIDs.includes(event.userID)) {
 						api.removeUserFromGroup(event.senderID, event.threadID, (err) => {
 							if (err) return console.log(err);
 						});
 					} else {
-						// Permission denied response (Optional)
-						message.send("⚠️ Access Denied.");
+						message.send("");
 					}
 				}
 
-				// Unsend by reactions (Everyone can unsend bot's message)
-				const unsendReactions = ["😡", "😠", "😾", "🤬"];
+				const unsendReactions = ["😡", "🤬", "😠", "😾"];
 
 				if (unsendReactions.includes(event.reaction)) {
-					// Check if the reaction is on the bot's own message
 					if (event.senderID == api.getCurrentUserID()) {
-						// Removed UID check: Anyone reacting can now unsend
 						message.unsend(event.messageID);
 					}
 				}
 				break;
 
-			// ============================
-			// TYPING
-			// ============================
 			case "typ":
 				typ();
 				break;
 
-			// ============================
-			// PRESENCE
-			// ============================
 			case "presence":
 				presence();
 				break;
 
-			// ============================
-			// READ RECEIPT
-			// ============================
 			case "read_receipt":
 				read_receipt();
 				break;
