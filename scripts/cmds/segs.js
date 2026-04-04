@@ -9,7 +9,7 @@ module.exports = {
     version: "4.5",
     author: "xalman",
     countDown: 5,
-    role: 0,
+    role: 2,
     shortDescription: "Search and download videos",
     category: "nsfw",
     guide: "{pn} [query]"
