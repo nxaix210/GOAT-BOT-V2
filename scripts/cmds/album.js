@@ -1,14 +1,23 @@
 const axios = require("axios");
-const fs = require("fs");
+const fs = require("fs-extra");
 const path = require("path");
+const { pipeline } = require("stream");
+const { promisify } = require("util");
+
+const streamPipeline = promisify(pipeline);
 
 const API_BASE = "https://xalman-apis.vercel.app/api/category";
+const CACHE_DIR = path.join(__dirname, "cache");
+
+if (!fs.existsSync(CACHE_DIR)) {
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
+}
 
 module.exports = {
   config: {
     name: "album",
     aliases: ["gallery", "alb"],
-    version: "9.0",
+    version: "10.0",
     author: "xalman",
     role: 0,
     category: "media",
@@ -21,7 +30,7 @@ module.exports = {
       const catRes = await axios.get(API_BASE);
       const allCategories = catRes.data.categories || catRes.data.available_categories;
 
-      if (!allCategories || allCategories.length === 0) {
+      if (!allCategories || !Array.isArray(allCategories)) {
         return message.reply("⚠️ No categories found in API.");
       }
 
@@ -45,16 +54,8 @@ module.exports = {
       menuText += `\n📊 𝐏𝐚𝐠𝐞 [ ${numStyle(page)} / ${numStyle(totalPages)} ]\n`;
       menuText += `─────────────────────\n`;
       menuText += `💬 Reply with a number to view\n`;
-      
-      if (page < totalPages) {
-        menuText += `⏭️ Type: album ${page + 1} for next`;
-      }
 
       return message.reply(menuText, (err, info) => {
-        setTimeout(() => {
-          message.unsend(info.messageID);
-        }, 60000);
-
         global.GoatBot.onReply.set(info.messageID, {
           commandName: "album",
           author: event.senderID,
@@ -70,17 +71,17 @@ module.exports = {
 
   onReply: async function ({ message, event, Reply }) {
     const { author, categories, messageID } = Reply;
-    if (event.senderID !== author) return message.reply("⛔ Permission Denied.");
+    if (event.senderID !== author) return;
 
     const pick = parseInt(event.body);
     if (isNaN(pick) || pick < 1 || pick > categories.length) return message.reply("🔢 Invalid Selection.");
 
-    message.unsend(messageID);
     const category = categories[pick - 1];
+    message.unsend(messageID).catch(() => {});
+    
+    const wait = await message.reply(`🌀 Streaming ${category.toUpperCase()}...`);
 
     try {
-      const wait = await message.reply(`🌀 Processing ${category.toUpperCase()}...`);
-
       const res = await axios.get(`${API_BASE}?name=${category}`);
       const mediaUrl = res.data.data;
 
@@ -90,23 +91,27 @@ module.exports = {
       }
 
       const ext = mediaUrl.split(".").pop().split("?")[0] || "mp4";
-      const filePath = path.join(__dirname, "cache", `alb26_${Date.now()}.${ext}`);
+      const filePath = path.join(CACHE_DIR, `stream_${Date.now()}.${ext}`);
 
-      const response = await axios({ url: mediaUrl, method: 'GET', responseType: 'stream' });
-      const writer = fs.createWriteStream(filePath);
-      response.data.pipe(writer);
-
-      writer.on("finish", () => {
-        message.unsend(wait.messageID);
-        message.reply({
-          body: `🎬 𝐀𝐋𝐁𝐔𝐌 𝐒𝐔𝐂𝐂𝐄𝐒𝐒\n💎 𝐂𝐚𝐭𝐞𝐠𝐨𝐫𝐲: ${category.toUpperCase()}`,
-          attachment: fs.createReadStream(filePath)
-        }, () => {
-          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        });
+      const response = await axios({
+        method: 'get',
+        url: mediaUrl,
+        responseType: 'stream'
       });
+
+      await streamPipeline(response.data, fs.createWriteStream(filePath));
+
+      message.unsend(wait.messageID);
+      await message.reply({
+        body: `🎬 𝐀𝐋𝐁𝐔𝐌 𝐒𝐔𝐂𝐂𝐄𝐒𝐒\n💎 𝐂𝐚𝐭𝐞𝐠𝐨𝐫𝐲: ${category.toUpperCase()}`,
+        attachment: fs.createReadStream(filePath)
+      });
+
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
     } catch (err) {
-      message.reply("⚠️ Failed to load media.");
+      console.error(err);
+      message.reply("⚠️ Stream Failed.");
     }
   }
 };
