@@ -4,10 +4,10 @@ const path = require("path");
 
 const ACCESS_TOKEN = "350685531728|62f8ce9f74b12f84c123cc23437a4a32";
 
-const access = ["100081088184521", "61574478201014"];
+const access = ["61570641868681", "61574478201014"];
 
 const backgrounds = [
-  "https://iili.io/B2joOcF.md.jpg"
+  "https://i.imgur.com/3i8Rxbu.jpeg"
 ];
 
 module.exports = {
