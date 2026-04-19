@@ -19,9 +19,9 @@ module.exports = {
     
     const categories = {
       "love": { icon: "❤️", font: "𝐥𝐨𝐯𝐞" },
-      "sad": { icon: "🥺", font: "𝐬𝐚𝐝" },
-      "funny": { icon: "🤣", font: "𝐟𝐮𝐧𝐧𝐲" },
-      "attitude": { icon: "😎", font: "𝐚𝐭𝐭𝐢𝐭𝐮𝐝𝐞" },
+      "sad": { icon: "😿", font: "𝐬𝐚𝐝" },
+      "funny": { icon: "😹", font: "𝐟𝐮𝐧𝐧𝐲" },
+      "attitude": { icon: "🗿", font: "𝐚𝐭𝐭𝐢𝐭𝐮𝐝𝐞" },
       "islamic": { icon: "🕌", font: "𝐢𝐬𝐥𝐚𝐦𝐢𝐜" }
     };
 
