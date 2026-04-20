@@ -20,10 +20,18 @@ module.exports = {
         responseType: "stream"
       });
 
-      return api.sendMessage({
+      const sentMessage = await api.sendMessage({
         body: "😋𝗛𝗲𝗿𝗲 𝗶𝘀 𝘆𝗼𝘂𝗿 𝗮𝗱𝘂𝗹𝘁 𝗮𝗻𝗶𝗺𝗲 𝗶𝗺𝗮𝗴𝗲🫦💋",
         attachment: response.data
-      }, event.threadID, event.messageID);
+      }, event.threadID);
+
+      setTimeout(async () => {
+        try {
+          await api.unsendMessage(sentMessage.messageID);
+        } catch (err) {
+          console.error("Unsend failed:", err);
+        }
+      }, 60000);
 
     } catch (error) {
       return api.sendMessage("Error fetching image.", event.threadID);
